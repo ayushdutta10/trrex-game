@@ -1,195 +1,105 @@
-var PLAY = 1;
-var END = 0;
-var gameState = PLAY;
+var tower,towerimage;
+var door,doorimage,doorGroup;
+var climber,climberimage,climberGroup;
+var ghost,ghostimage;
+var invisible,invisibleGroup;
+var gamestate = "play";
 
-var trex, trex_running, trex_collided;
-var ground, invisibleGround, groundImage;
 
-var cloudsGroup, cloudImage;
-var obstaclesGroup, obstacle1, obstacle2, obstacle3, obstacle4, obstacle5, obstacle6;
-
-var score=0;
-
-var gameOver, restart;
-
-localStorage["HighestScore"] = 0;
-
-function preload(){
-  trex_running =   loadAnimation("trex1.png","trex3.png","trex4.png");
-  trex_collided = loadAnimation("trex_collided.png");
-  
-  groundImage = loadImage("ground2.png");
-  
-  cloudImage = loadImage("cloud.png");
-  
-  obstacle1 = loadImage("obstacle1.png");
-  obstacle2 = loadImage("obstacle2.png");
-  obstacle3 = loadImage("obstacle3.png");
-  obstacle4 = loadImage("obstacle4.png");
-  obstacle5 = loadImage("obstacle5.png");
-  obstacle6 = loadImage("obstacle6.png");
-  
-  gameOverImg = loadImage("gameOver.png");
-  restartImg = loadImage("restart.png");
+function preload () {
+towerimage = loadImage("tower.png"); 
+  doorimage = loadImage("door.png");
+  climberimage = loadImage("climber.png");
+  ghostimage = loadImage("ghost-standing.png");
 }
 
-function setup() {
-  createCanvas(600, 200);
+function setup () {
+ createCanvas(600,600);
+  tower = createSprite(300,300,50,50);
+  tower.addImage("tower",towerimage);
+  tower.velocityY = 1;
   
-  trex = createSprite(50,180,20,50);
+  doorGroup = new Group();
+  climberGroup = new Group();
+  invisibleGroup = new Group();
   
-  trex.addAnimation("running", trex_running);
-  trex.addAnimation("collided", trex_collided);
-  trex.scale = 0.5;
-  
-  ground = createSprite(200,180,400,20);
-  ground.addImage("ground",groundImage);
-  ground.x = ground.width /2;
-  ground.velocityX = -(6 + 3*score/100);
-  
-  gameOver = createSprite(300,100);
-  gameOver.addImage(gameOverImg);
-  
-  restart = createSprite(300,140);
-  restart.addImage(restartImg);
-  
-  gameOver.scale = 0.5;
-  restart.scale = 0.5;
-
-  gameOver.visible = false;
-  restart.visible = false;
-  
-  invisibleGround = createSprite(200,190,400,10);
-  invisibleGround.visible = false;
-  
-  cloudsGroup = new Group();
-  obstaclesGroup = new Group();
-  
-  score = 0;
+  ghost = createSprite(200,200,50,50);
+  ghost.addImage("ghost",ghostimage)
+  ghost.scale = 0.3;
 }
 
-function draw() {
-  //trex.debug = true;
-  background(255);
-  text("Score: "+ score, 500,50);
+function draw () {
+background(0);
   
-  if (gameState===PLAY){
-    score = score + Math.round(getFrameRate()/60);
-    ground.velocityX = -(6 + 3*score/100);
   
-    if(keyDown("space") && trex.y >= 159) {
-      trex.velocityY = -12;
-    }
   
-    trex.velocityY = trex.velocityY + 0.8
   
-    if (ground.x < 0){
-      ground.x = ground.width/2;
-    }
   
-    trex.collide(invisibleGround);
-    spawnClouds();
-    spawnObstacles();
   
-    if(obstaclesGroup.isTouching(trex)){
-        gameState = END;
-    }
-  }
-  else if (gameState === END) {
-    gameOver.visible = true;
-    restart.visible = true;
-    
-    //set velcity of each game object to 0
-    ground.velocityX = 0;
-    trex.velocityY = 0;
-    obstaclesGroup.setVelocityXEach(0);
-    cloudsGroup.setVelocityXEach(0);
-    
-    //change the trex animation
-    trex.changeAnimation("collided",trex_collided);
-    
-    //set lifetime of the game objects so that they are never destroyed
-    obstaclesGroup.setLifetimeEach(-1);
-    cloudsGroup.setLifetimeEach(-1);
-    
-    if(mousePressedOver(restart)) {
-      reset();
-    }
+  if(gamestate === "play") {
+  if(tower.y>400) {
+    tower.y = 300;
+  }  
+    spawndoors();
+    if(keyDown("left_arrow")) {
+    ghost.x = ghost.x-3;
   }
   
-  
-  drawSprites();
-}
-
-function spawnClouds() {
-  //write code here to spawn the clouds
-  if (frameCount % 60 === 0) {
-    var cloud = createSprite(600,120,40,10);
-    cloud.y = Math.round(random(80,120));
-    cloud.addImage(cloudImage);
-    cloud.scale = 0.5;
-    cloud.velocityX = -3;
-    
-     //assign lifetime to the variable
-    cloud.lifetime = 200;
-    
-    //adjust the depth
-    cloud.depth = trex.depth;
-    trex.depth = trex.depth + 1;
-    
-    //add each cloud to the group
-    cloudsGroup.add(cloud);
+  if(keyDown("right_arrow")) {
+    ghost.x = ghost.x+3;
   }
   
-}
-
-function spawnObstacles() {
-  if(frameCount % 60 === 0) {
-    var obstacle = createSprite(600,165,10,40);
-    //obstacle.debug = true;
-    obstacle.velocityX = -(6 + 3*score/100);
+  if(keyDown("space")) {
+   ghost.velocityY = -5;
+  }
+  
+  ghost.velocityY = ghost.velocityY+0.5;
+  
+   if(climberGroup.isTouching(ghost)) {
+    ghost.velocityY = 0;
+  }
+    if(invisibleGroup.isTouching(ghost) || ghost.y> 600) {
+    ghost.destroy();
+    gamestate = "end";
+  }
+    drawSprites();
+  }
+  if(gamestate === "end") {
+   stroke("yellow");
+    fill("yellow");
+    textSize(30);
+    text("Game Over",230,250);
     
-    //generate random obstacles
-    var rand = Math.round(random(1,6));
-    switch(rand) {
-      case 1: obstacle.addImage(obstacle1);
-              break;
-      case 2: obstacle.addImage(obstacle2);
-              break;
-      case 3: obstacle.addImage(obstacle3);
-              break;
-      case 4: obstacle.addImage(obstacle4);
-              break;
-      case 5: obstacle.addImage(obstacle5);
-              break;
-      case 6: obstacle.addImage(obstacle6);
-              break;
-      default: break;
-    }
     
-    //assign scale and lifetime to the obstacle           
-    obstacle.scale = 0.5;
-    obstacle.lifetime = 300;
-    //add each obstacle to the group
-    obstaclesGroup.add(obstacle);
   }
 }
-
-function reset(){
-  gameState = PLAY;
-  gameOver.visible = false;
-  restart.visible = false;
-  
-  obstaclesGroup.destroyEach();
-  cloudsGroup.destroyEach();
-  
-  trex.changeAnimation("running",trex_running);
-  
-  if(localStorage["HighestScore"]<score){
-    localStorage["HighestScore"] = score;
-  }
-  console.log(localStorage["HighestScore"]);
-  
-  score = 0;
-  
+function spawndoors() {
+ if(frameCount%240 === 0) {
+   var door = createSprite(200,-50)
+   door.addImage("door",doorimage);
+   door.velocityY = 1;
+   door.x = Math.round(random(120,400));
+   door.lifetime = 800;
+   doorGroup.add(door);
+   
+   climber = createSprite(200,10);
+   climber.addImage("climber",climberimage);
+   climber.velocityY = 1;
+   climber.x = door.x;
+   climber.lifetime = 800;
+   climberGroup.add(climber);
+   ghost.depth = door.depth;
+   ghost.depth = ghost.depth+1;
+   
+   invisible = createSprite(200,15);
+   invisible.x = door.x;
+   invisible.velocityY = 1;
+   invisible.lifetime = 800;
+   invisible.debug = true;
+   invisible.width = climber.width;
+   invisible.height = 2
+   invisibleGroup.add(invisible);
+   
+   
+}
 }
